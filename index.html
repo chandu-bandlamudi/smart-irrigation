@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Irrigation System</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div>
+    <p class="eyebrow">AI-POWERED AGRICULTURE</p>
+    <h1>Smart Irrigation System</h1>
+    <p>Dataset processing, agent-based learning and irrigation-status prediction.</p>
+  </div>
+</header>
+
+<main>
+<section class="card">
+  <h2>1. Upload Irrigation Dataset</h2>
+  <form id="uploadForm">
+    <input id="datasetFile" type="file" accept=".csv" required>
+    <button>Upload Dataset</button>
+  </form>
+  <div id="uploadInfo" class="status"></div>
+  <div id="preview"></div>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>2. Preprocess</h2>
+    <p>Normalize the six input features using StandardScaler.</p>
+    <button onclick="postAction('/preprocess')">Preprocess Dataset</button>
+  </div>
+  <div class="card">
+    <h2>3. Train/Test Split</h2>
+    <p>Split the processed data into training and testing sets.</p>
+    <button onclick="postAction('/split')">Split Dataset</button>
+  </div>
+  <div class="card">
+    <h2>4. Train Agent</h2>
+    <p>Run the project's Agent–Environment prediction process.</p>
+    <button onclick="postAction('/train')">Train Model</button>
+  </div>
+  <div class="card">
+    <h2>5. Rewards & Penalty</h2>
+    <p>View the evaluation graph after training.</p>
+    <button onclick="showGraph()">View Graph</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>6. Predict Irrigation Status</h2>
+  <form id="predictForm">
+    <input id="predictFile" type="file" accept=".csv" required>
+    <button>Predict</button>
+  </form>
+  <div id="prediction"></div>
+</section>
+
+<section class="card">
+  <h2>System Output</h2>
+  <pre id="output">Upload a dataset to begin.</pre>
+</section>
+</main>
+
+<div id="modal" class="modal hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal-content">
+    <button class="close" onclick="document.getElementById('modal').classList.add('hidden')">×</button>
+    <h2>Rewards & Penalty</h2>
+    <img id="graphImg" alt="Rewards and penalty graph">
+  </div>
+</div>
+
+<script>
+const output = document.getElementById('output');
+function show(obj) {
+  output.textContent = obj.message || JSON.stringify(obj, null, 2);
+  if (obj.ok === false) output.classList.add('error');
+  else output.classList.remove('error');
+}
+async function postAction(url) {
+  try {
+    const r = await fetch(url, {method:'POST'});
+    const data = await r.json();
+    show(data);
+  } catch(e) { show({ok:false, message:e.toString()}); }
+}
+document.getElementById('uploadForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('file', document.getElementById('datasetFile').files[0]);
+  const r = await fetch('/upload', {method:'POST', body:fd});
+  const data = await r.json();
+  show(data);
+  if (data.ok) {
+    document.getElementById('uploadInfo').innerHTML =
+      `<strong>${data.filename}</strong> — ${data.rows} rows`;
+    document.getElementById('preview').innerHTML = data.preview;
+  }
+});
+document.getElementById('predictForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('file', document.getElementById('predictFile').files[0]);
+  const r = await fetch('/predict', {method:'POST', body:fd});
+  const data = await r.json();
+  show(data);
+  if (data.ok) {
+    document.getElementById('prediction').innerHTML =
+      `<table class="table"><tr><th>Row</th><th>Irrigation Status</th><th>Data</th></tr>` +
+      data.predictions.map(x =>
+        `<tr><td>${x.row}</td><td><strong>${x.status}</strong></td><td>${x.data.join(', ')}</td></tr>`
+      ).join('') + '</table>';
+  }
+});
+async function showGraph() {
+  const r = await fetch('/graph');
+  const data = await r.json();
+  show(data);
+  if (data.ok) {
+    document.getElementById('graphImg').src = 'data:image/png;base64,' + data.image;
+    document.getElementById('modal').classList.remove('hidden');
+  }
+}
+</script>
+</body>
+</html>
