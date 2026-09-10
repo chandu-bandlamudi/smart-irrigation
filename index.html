@@ -115,14 +115,15 @@ document.getElementById('predictForm').addEventListener('submit', async e => {
   }
 });
 async function showGraph() {
-  const r = await fetch('/graph');
-  const data = await r.json();
-  show(data);
-  if (data.ok) {
-    document.getElementById('graphImg').src =
-    'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data.svg);
-    document.getElementById('modal').classList.remove('hidden');
-  }
+    const r = await fetch('/graph');
+
+    if (r.ok) {
+        document.getElementById('graphImg').src = '/graph';
+        document.getElementById('modal').classList.remove('hidden');
+    } else {
+        const data = await r.json();
+        show(data);
+    }
 }
 </script>
 </body>

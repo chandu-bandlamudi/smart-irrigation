@@ -190,7 +190,7 @@ def graph():
         </svg>
         """
 
-        return jsonify(ok=True, svg=svg)
+        return svg, 200, {"Content-Type": "image/svg+xml"}
 
     except Exception as e:
         return jsonify(
