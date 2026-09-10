@@ -119,7 +119,8 @@ async function showGraph() {
   const data = await r.json();
   show(data);
   if (data.ok) {
-    document.getElementById('graphImg').src = 'data:image/png;base64,' + data.image;
+    document.getElementById('graphImg').src =
+    'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data.svg);
     document.getElementById('modal').classList.remove('hidden');
   }
 }

@@ -8,9 +8,7 @@ from Agent import Agent
 import io
 import base64
 import os
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
@@ -118,19 +116,87 @@ def train():
 def graph():
     if state["rewards"] is None:
         return jsonify(ok=False, message="Train the model first."), 400
+
     try:
-        fig, ax = plt.subplots(figsize=(7, 4))
-        ax.bar(["Rewards", "Penalty"], [state["rewards"], state["penalty"]])
-        ax.set_xlabel("Type")
-        ax.set_ylabel("Count")
-        ax.set_title("Rewards & Penalty Graph")
-        fig.tight_layout()
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=140)
-        plt.close(fig)
-        return jsonify(ok=True, image=base64.b64encode(buf.getvalue()).decode())
+        rewards = int(state["rewards"])
+        penalty = int(state["penalty"])
+
+        max_value = max(rewards, penalty, 1)
+
+        reward_width = int((rewards / max_value) * 500)
+        penalty_width = int((penalty / max_value) * 500)
+
+        svg = f"""
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="650" height="350"
+             viewBox="0 0 650 350">
+
+            <rect width="650" height="350" fill="white"/>
+
+            <text x="325" y="40"
+                  text-anchor="middle"
+                  font-size="24"
+                  font-family="Arial"
+                  font-weight="bold">
+                Rewards &amp; Penalty
+            </text>
+
+            <text x="60" y="105"
+                  font-size="18"
+                  font-family="Arial">
+                Rewards
+            </text>
+
+            <rect x="130" y="80"
+                  width="{reward_width}"
+                  height="40"
+                  rx="6"
+                  fill="#2e8b57"/>
+
+            <text x="{140 + reward_width}" y="107"
+                  font-size="16"
+                  font-family="Arial">
+                {rewards}
+            </text>
+
+            <text x="60" y="190"
+                  font-size="18"
+                  font-family="Arial">
+                Penalty
+            </text>
+
+            <rect x="130" y="165"
+                  width="{penalty_width}"
+                  height="40"
+                  rx="6"
+                  fill="#d9534f"/>
+
+            <text x="{140 + penalty_width}" y="192"
+                  font-size="16"
+                  font-family="Arial">
+                {penalty}
+            </text>
+
+            <line x1="60" y1="250"
+                  x2="590" y2="250"
+                  stroke="#333"/>
+
+            <text x="325" y="295"
+                  text-anchor="middle"
+                  font-size="16"
+                  font-family="Arial">
+                Smart Irrigation Model Evaluation
+            </text>
+        </svg>
+        """
+
+        return jsonify(ok=True, svg=svg)
+
     except Exception as e:
-        return jsonify(ok=False, message=f"Graph generation failed: {e}"), 400
+        return jsonify(
+            ok=False,
+            message=f"Graph generation failed: {str(e)}"
+        ), 400
 
 @app.route("/predict", methods=["POST"])
 def predict():
